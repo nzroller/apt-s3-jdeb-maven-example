@@ -131,6 +131,8 @@
                       <mapper>
                         <type>perm</type>
                         <prefix>/opt/${project.artifactId}</prefix>
+                        <user>www-data</user>
+                        <group>www-data</group>
                       </mapper>
                     </data>
                     <data>

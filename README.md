@@ -31,11 +31,48 @@ plugin lets us hook debian package creation into the maven lifecycle.
     PreDepends: dpkg (>= 1.15.7.2)
     Distribution: development
 
+In addition to this, an init.d script is useful, which is placed in
+`src/deb/init.d`. The `control` file, as well as
+[maintainer scripts](http://www.debian.org/doc/debian-policy/ch-maintainerscripts.html)
+(`preinst`, `postinst`, `conffiles`, etc) are by convention placed in the
+`src/deb/control` directory.
+
+One advantage of building a debian package comes from being able to use and
+specify standard Linux directories for log files (`/var/log`) and
+configuration files (`/etc`). Directory mappings and placing files where
+they're expected to be, as well as file permissions and user/group is all
+configured in the plugin's configuration section in the [pom](pom.xml). For
+example, the following places the app's config file in `/etc`, sets user and
+group to `www-data` and makes it solely user read and writable:
+
+    <data>
+      <src>${project.basedir}/${project.artifactId}.yaml</src>
+      <type>file</type>
+      <mapper>
+        <type>perm</type>
+        <prefix>/etc</prefix>
+        <filemode>600</filemode>
+        <user>www-data</user>
+        <group>www-data</group>
+      </mapper>
+    </data>
+
+
+Having come this far, we're actually able to try things out:
+
+    mvn -DperformRelease clean install
+	sudo dpkg -i target/*.deb
+
+This will have placed the jar in `/opt`, the init.d script in `/etc/init.d`
+and a log directory under `/var/log`.
+
 Upon release, the jar, deb and maven metadata are deployed to S3 using kuali's
-[maven-s3-wagon](https://github.com/jcaddel/maven-s3-wagon). I looked at
+[maven-s3-wagon](https://github.com/jcaddel/maven-s3-wagon) (I looked at
 [aws-maven](https://github.com/SpringSource/aws-maven) which also provides an
 S3 extension but unfortunately it makes all uploaded files public and it's
-hardcoded. `maven-s3-plugin` wants credentials like the following in your (or
+hardcoded).
+
+`maven-s3-plugin` wants credentials like the following in your (or
 on your build server's) `~/.m2/settings.xml`:
 
     <servers>
@@ -102,13 +139,14 @@ continuous integration server (Hopefully hosted on EC2 to get those free and
 fast transfers).
 
 [apt-s3](https://github.com/pas256/apt-s3) provides a debian S3 transport
-method. It is a fork from kyleshank/apt-s3 and ironically not available in
-public debian/ubuntu repositories. So to build it, `make` will do.
+method. It is a fork from
+[kyleshank/apt-s3](https://github.com/kyleshank/apt-s3) and ironically not
+available in public debian/ubuntu repositories. So to build it, `make` will
+have to do, on each architecture we're planning on using it on.
 
-Each of your app servers will need this transport method in order to access
-the private respository, but once `s3` is built and installed to
-`/usr/lib/apt/methods/` you can put something like the following in
-`/etc/apt/sources.list`:
+Each app server will need this transport method in order to access the private
+respository, but once `s3` is built and installed to `/usr/lib/apt/methods/`,
+something like the following can be added to `/etc/apt/sources.list`:
 
 ``deb s3://AWS_ACCESS_ID:[AWS_SECRET_KEY_INCLUDING_BRACKETS]@s3-eu-west-1.amazonaws.com/BUCKETNAME/snapshot snapshot main``
 
@@ -124,8 +162,8 @@ We could probably have kept the two separate but the idea is to eventually
 find out how we can symlink to the debian packages from their maven
 locations. We haven't signed the artifacts or packages but hopefully that's
 not too hard to setup. An important facet of continuous delivery is the
-ability to rollback -- that's something not yet looked at but could probably
-be managed by adding
+ability to rollback, and fast. That's something not yet looked at but could
+probably be managed by adding
 [maintainer scripts](http://www.debian.org/doc/debian-policy/ch-maintainerscripts.html)
 in addition to specifying a version when doing the `apt-get install`.
 
