@@ -41,7 +41,8 @@ One advantage of building a debian package comes from being able to use and
 specify standard Linux directories for log files (`/var/log`) and
 configuration files (`/etc`). Directory mappings and placing files where
 they're expected to be, as well as file permissions and user/group is all
-configured in the plugin's configuration section in the [pom](pom.xml). For
+configured in the plugin's configuration section in the 
+[pom](https://github.com/nzroller/apt-s3-jdeb-maven-example/blob/master/pom.xml). For
 example, the following places the app's config file in `/etc`, sets user and
 group to `www-data` and makes it solely user read and writable:
 
